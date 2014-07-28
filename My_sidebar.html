@@ -1,0 +1,55 @@
+<link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">
+<!-- The CSS package above applies Google styling to buttons and other elements. -->
+<link rel="stylesheet" href="https://dl.dropboxusercontent.com/u/12425322/style_healthcare.css">
+
+<div class="sidebar main">
+  <!--<div class="description">
+    Store key areas of your document (symptoms,observations...)
+  </div> -->
+  <div class="step gettingStarted">
+    <b>Getting Started</b><br>
+  </div>
+   <div class="selectText"> 
+     Select the text you want to annotate 
+   </div>
+   <div class="step selectColor">
+    <b>Type</b>
+    <br>Choose a type for your selection
+    <div class="types_buttons">
+    <table><tr>
+     <tr> <button onclick="save(this)" class="my_button" name="observation" value="#EDE96F">Observation</button></tr>
+     <tr> <button onclick="save(this)" class="my_button" name="action" value="#FF0000">Action / Treatment</button></tr>
+     <tr> <button onclick="save(this)" class="my_button" name="title" value="#80CF83">Title</button></tr>
+     <tr> <button onclick="save(this)" class="my_button" name="information" value="#64A5FA">Information / Explanation</button></tr>
+     <tr> <button onclick="save(this)" class="my_button" name="author" value="#C781EB">Author</button></tr>
+     <tr> <button onclick="save(this)" class="my_button" name="diagnosis" value="#E8B890">Diagnosis</button></tr>
+    </table>
+    </div>
+    <table>
+    <tr><div class="links_buttons">
+      <button onclick="google.script.run.createLink()" class="my_button" name="Obs_to_diag">Observation->Diagnosis</button>
+    </div></tr>
+    </table>
+    <table>
+    <div class="other_buttons">
+      <tr><button onclick="google.script.run.getAnnotationsInDoc()">What's in the doc</button>
+      <button onclick="google.script.run.saveAnnotationsInDoc()" class="action">Save</button></tr>
+     <tr> <button onclick="google.script.run.clearAnnotationsInDoc()">Clear doc prop</button>
+      <button onclick="google.script.run.generateSpreadsheet()" class="action">Generate Spreadsheet</button><br/></tr>
+     <tr> <button onclick="google.script.run.clearCache()">Clear cache</button> <br/>
+      <button onclick="google.script.run.customise()">Customize</button></tr>
+      <!--<button onclick="google.script.host.close()">Close</button>-->
+    </div>
+    </table>
+   </div> 
+</div>
+
+<!--<div class="sidebar bottom">
+<img alt="Add-on logo" class="logo" width="60%" height="60%" src="http://www.york.ac.uk/media/communications/visualidexamples/logo.jpg">
+</div>-->
+
+<script>
+function save(button) {
+  google.script.run.save(button.name, button.value);
+}
+</script>
