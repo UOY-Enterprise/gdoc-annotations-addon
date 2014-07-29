@@ -347,7 +347,7 @@ function customise() {
 /* Displays the customised sidebar */
 function updateButtons(xml_content) {
   var newSidebar = '<link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">';
-  newSidebar += '<link rel="stylesheet" href="https://dl.dropboxusercontent.com/u/12425322/style_healthcare.css">';
+  newSidebar += '<link rel="stylesheet" href="https://raw.githubusercontent.com/UOY-Enterprise/gdoc-annotations-addon/master/style_healthcare.css">';
   
   newSidebar +=('<div class="sidebar main">  <div class="step gettingStarted">    <b>Getting Started</b><br> </div>');
   newSidebar += '<div class="selectText">      Select the text you want to annotate    </div>';
