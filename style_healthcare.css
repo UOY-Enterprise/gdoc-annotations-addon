@@ -1,0 +1,14 @@
+.branding-below {
+  bottom: 56px;
+  top: 0;
+}
+.description{
+  margin-bottom: 6px;
+}
+.my_button {
+  width: 270px;
+}
+
+.step.gettingStarted, .step.selectColor, .types_buttons, .other_buttons{
+  margin-top: 8px;
+}
