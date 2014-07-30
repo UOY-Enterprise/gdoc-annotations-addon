@@ -25,15 +25,20 @@ function showSidebar() {
   var default_types = ['observation', 'action', 'title', 'information', 'author', 'diagnosis'];
   var default_colors = ['#EDE96F', '#FF0000', '#80CF83', '#64A5FA', '#C781EB', '#E8B890'];
   var all_types = new Array();
+  var lastID = PropertiesService.getDocumentProperties().getProperty('ID');
+  if(lastID == null) {
+    PropertiesService.getDocumentProperties().setProperty('ID', 0);
+  }
   for (var i = 0; i < default_types.length; i++) {
     all_types[i] = new Object();
     all_types[i].name = default_types[i];
     all_types[i].color = default_colors[i];
     all_types[i].attributes = new Array();
-    for (var j = 0; j < 1 ; j++) { // For the moment we have only 1 attribute : text_TYPE
-      all_types[i].attributes[j] = new Object();
-      all_types[i].attributes[j].name = 'attribut_'+all_types[i].name;
-    }
+    
+    all_types[i].attributes[0] = new Object();
+    all_types[i].attributes[0].name = 'id';
+    all_types[i].attributes[1] = new Object();
+    all_types[i].attributes[1].name = 'attribut_'+all_types[i].name;
   }
   clearCache();
   initCache(all_types);
@@ -85,6 +90,7 @@ function save(type, color) {
 function addToCache(type, text, selectedElements) {
   var annotations = JSON.parse(CacheService.getPrivateCache().get("annotations"));
   var annotations_type = JSON.parse(PropertiesService.getDocumentProperties().getProperty('ANNOTATIONS_TYPE'));
+  var lastID = PropertiesService.getDocumentProperties().getProperty('ID');
   var annotation = {};
   for(i = 0; i< annotations_type[type].attributes.length; i++) {
     var attrName = annotations_type[type].attributes[i].name;
@@ -108,8 +114,14 @@ function addToCache(type, text, selectedElements) {
     }
     if(nbChar != null)
       annotation[attrName] = ""+text.substring(0, nbChar); // to avoid the [] 
-    else 
-      annotation[attrName] = ""+text; // to avoid the [] 
+    else {
+      if(attrName == 'id') {
+        annotation[attrName] = ""+lastID++; // to avoid the [] 
+        PropertiesService.getDocumentProperties().setProperty('ID', lastID);
+      }
+      else
+        annotation[attrName] = ""+text; // to avoid the []    
+    }
   }
   annotations[type].push(annotation);  
   CacheService.getPrivateCache().put('annotations', JSON.stringify(annotations), 3600);
@@ -227,7 +239,7 @@ function insertComment(fileId, selection, type) {
 function getAnnotationsInDoc() {
   var documentProperties = PropertiesService.getDocumentProperties();
   DocumentApp.getUi().alert('dans les prop du document : ' + documentProperties.getProperty('ANNOTATIONS'));
-  DocumentApp.getUi().alert('dans les prop du document type : ' + documentProperties.getProperty('ANNOTATIONS_TYPE'));  
+  //DocumentApp.getUi().alert('dans les prop du document type : ' + documentProperties.getProperty('ANNOTATIONS_TYPE'));  
 }
 
 /* Remove the annotations stored in the document properties */
@@ -235,6 +247,7 @@ function clearAnnotationsInDoc() {
   var documentProperties = PropertiesService.getDocumentProperties();
   documentProperties.deleteProperty('ANNOTATIONS');
   documentProperties.deleteProperty('ANNOTATIONS_TYPE'); 
+  documentProperties.deleteProperty('ID'); 
   // A reload of the page is needed after this function, otherwise the types are empty
 }
 
@@ -356,7 +369,6 @@ function updateButtons(xml_content) {
   for (var i = 0; i < xml_content.length; i++) {
     newSidebar += '<tr><button onclick="save(this)" class="my_button" name="'+xml_content[i].name+'" value="'+xml_content[i].color+'">' +xml_content[i].name+'</button></tr>';
   }  
-
   
   newSidebar += '<tr><button onclick="google.script.run.getAnnotationsInDoc()">What\'s in the doc</button>';
   newSidebar += '<button onclick="google.script.run.saveAnnotationsInDoc()" class="action">Save</button></tr>';

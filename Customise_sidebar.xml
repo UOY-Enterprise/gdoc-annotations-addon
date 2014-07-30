@@ -2,12 +2,14 @@
   <type>
     <name>GreenType</name>
     <color>#20B046</color>
+    <attribute>id</attribute>
     <attribute>name_attG1</attribute>
     <attribute char="2">name_attG2</attribute>
   </type>
   <type>
     <name>BlueType</name>
     <color>#3349F2</color>
+    <attribute>id</attribute>
     <attribute manual="false">name_attB1</attribute>
     <attribute manual="true">name_attB2</attribute>
     <attribute char="3">name_attB3</attribute>
