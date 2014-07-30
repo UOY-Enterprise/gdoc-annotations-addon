@@ -252,7 +252,7 @@ function clearAnnotationsInDoc() {
 }
 
 /* Parses the XML file and customise the application with the new types */
-function doPost(e){
+function loadXML(e){
   var url = e.parameter.url;
   var xml = UrlFetchApp.fetch(url).getContentText();
   var document = XmlService.parse(xml); 
@@ -352,7 +352,10 @@ function customise() {
   
   formContent.setText(0, 0, 'Use an existing file: ')
   formContent.setWidget(0, 1, app.createTextBox().setName('url'));
-  formContent.setWidget(0, 2, app.createSubmitButton('Customise'));  
+
+  var clickHandler = app.createServerHandler('loadXML');
+  clickHandler.addCallbackElement(form);
+  formContent.setWidget(0, 2, app.createButton('Customise').addClickHandler(clickHandler));  
   
   DocumentApp.getUi().showModalDialog(app, 'XML file');
 }
