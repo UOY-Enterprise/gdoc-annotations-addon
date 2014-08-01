@@ -144,7 +144,7 @@ function findPattern(selectedElements, pattern) {
     }
     //   }
   }
-  // NB : returns the last matching element
+  // NB: returns the last matching element
   return value;
 }
 
@@ -167,16 +167,18 @@ function updateView(selectedElements, backgroundColor) {
 function initCache(xml_content) {
   var annotations = {}; 
   var annotations_type = {}; 
+  var links = []; 
   for (var i = 0; i < xml_content.length; i++) {
     annotations[xml_content[i].name] = [];
     annotations_type[xml_content[i].name] = {"color" : xml_content[i].color, "attributes" : new Object(xml_content[i].attributes)};
   }  
   CacheService.getPrivateCache().put('annotations', JSON.stringify(annotations), 3600);   
+  CacheService.getPrivateCache().put('links', JSON.stringify(links), 3600);   
   PropertiesService.getDocumentProperties().setProperty('ANNOTATIONS_TYPE', JSON.stringify(annotations_type));
 }
 
-/* Clears the cache */
-function clearCache() {
+/* Clears the annotations stored into the cache */
+function clearAnnotationsInCache() {
   if(CacheService.getPrivateCache().get('annotations') != null) {
     var annotations = JSON.parse(CacheService.getPrivateCache().get('annotations'));
     var types =  Object.keys(annotations);
@@ -186,6 +188,17 @@ function clearCache() {
     }  
     CacheService.getPrivateCache().put('annotations', JSON.stringify(emptyAnnotations), 3600);
   }
+}
+
+/* Clears the links stored into the cache */
+function clearLinksInCache() {
+  CacheService.getPrivateCache().put('links', JSON.stringify([]), 3600);
+}
+
+/* Clears the cache */
+function clearCache() {
+  clearAnnotationsInCache();
+  clearLinksInCache();
 }  
 
 /* Saves the annotations in the document properties */
@@ -216,7 +229,7 @@ function saveAnnotationsInDoc() {
     }
     documentProperties.setProperty('ANNOTATIONS', JSON.stringify(newAnnotations));
   }
-  clearCache();
+  clearAnnotationsInCache();
 }
 
 /**
@@ -238,8 +251,9 @@ function insertComment(fileId, selection, type) {
 /* Displays the annotations stored in the document properties */
 function getAnnotationsInDoc() {
   var documentProperties = PropertiesService.getDocumentProperties();
-  DocumentApp.getUi().alert('dans les prop du document : ' + documentProperties.getProperty('ANNOTATIONS'));
-  //DocumentApp.getUi().alert('dans les prop du document type : ' + documentProperties.getProperty('ANNOTATIONS_TYPE'));  
+  DocumentApp.getUi().alert('Annotations in the Document Properties: ' + documentProperties.getProperty('ANNOTATIONS'));
+  //DocumentApp.getUi().alert('Annotations_type in the Document Properties: ' + documentProperties.getProperty('ANNOTATIONS_TYPE'));  
+  DocumentApp.getUi().alert('Links in the Document Properties: ' + documentProperties.getProperty('LINKS'));  
 }
 
 /* Remove the annotations stored in the document properties */
@@ -248,11 +262,12 @@ function clearAnnotationsInDoc() {
   documentProperties.deleteProperty('ANNOTATIONS');
   documentProperties.deleteProperty('ANNOTATIONS_TYPE'); 
   documentProperties.deleteProperty('ID'); 
+  documentProperties.deleteProperty('LINKS'); 
   // A reload of the page is needed after this function, otherwise the types are empty
 }
 
 /* Parses the XML file and customise the application with the new types */
-function loadXML(e){
+function loadXML(e) {
   var url = e.parameter.url;
   var xml = UrlFetchApp.fetch(url).getContentText();
   var document = XmlService.parse(xml); 
@@ -352,7 +367,7 @@ function customise() {
   
   formContent.setText(0, 0, 'Use an existing file: ')
   formContent.setWidget(0, 1, app.createTextBox().setName('url'));
-
+  
   var clickHandler = app.createServerHandler('loadXML');
   clickHandler.addCallbackElement(form);
   formContent.setWidget(0, 2, app.createButton('Customise').addClickHandler(clickHandler));  
@@ -373,7 +388,12 @@ function updateButtons(xml_content) {
     newSidebar += '<tr><button onclick="save(this)" class="my_button" name="'+xml_content[i].name+'" value="'+xml_content[i].color+'">' +xml_content[i].name+'</button></tr>';
   }  
   
-  newSidebar += '<tr><button onclick="google.script.run.getAnnotationsInDoc()">What\'s in the doc</button>';
+  newSidebar +='</table></div>';
+  newSidebar += '<table><tr><div class="links_buttons"> ';
+  newSidebar += '<button onclick="google.script.run.displayLinkCreation()" class="my_button" name="link_creator">Link creator</button>';
+  newSidebar += '</div></tr></table>';  
+  
+  newSidebar += ' <table> <div class="other_buttons"> <tr><button onclick="google.script.run.getAnnotationsInDoc()">What\'s in the doc</button>';
   newSidebar += '<button onclick="google.script.run.saveAnnotationsInDoc()" class="action">Save</button></tr>';
   
   newSidebar += '<tr><button onclick="google.script.run.clearAnnotationsInDoc()">Clear doc prop</button>';
@@ -382,59 +402,104 @@ function updateButtons(xml_content) {
   newSidebar += '<tr><button onclick="google.script.run.clearCache()">Clear cache</button></tr>';
   // newSidebar += '<button onclick="google.script.run.customise()">customise</button>';
   
-  newSidebar += '</table>';
+  newSidebar += '</div></table>';
   
-  newSidebar +='</div> </div> </div>';
+  newSidebar +='</div> </div>';
   newSidebar +='<script> function save(button) {google.script.run.save(button.name, button.value);}</script>';
   var htmlOutput = HtmlService.createHtmlOutput(newSidebar);
   htmlOutput.setWidth(250).setHeight(300);
   DocumentApp.getUi().showSidebar(htmlOutput);
 }
 
+
 /* Window for creating links between elements */
-function createLink() {
-  var app = UiApp.createApplication();    
-  var mainPanel = app.createVerticalPanel();
-  
-  var panelRadio = app.createVerticalPanel(); 
-  var validateButton = app.createButton('validate');
-  var textRadio1 = 'texte du premier radio button';
-  var textRadio2 = 'texte du deuxieme radio button';
-  var textRadio3 = 'texte du troisieme radio button';
-  
-  var radio1 = app.createRadioButton('radio_ob', textRadio1);
-  var radio2 = app.createRadioButton('radio_ob', textRadio2);
-  var radio3 = app.createRadioButton('radio_ob', textRadio3);
-  
-  var panelCheck = app.createVerticalPanel(); 
-  var textCheck1 = 'diagnosis1';
-  var textCheck2 = 'diagnosis2';
-  var textCheck3 = 'diagnosis3';
-  
-  var check1 = app.createCheckBox(textCheck1);
-  var check2 = app.createCheckBox(textCheck2);
-  var check3 = app.createCheckBox(textCheck3);
-  
- // var textbox_to_test = app.createTextBox().setName('nom1');
- // mainPanel.add(textbox_to_test); 
-  panelRadio.add(radio1);   panelRadio.add(radio2);   panelRadio.add(radio3);
-  panelCheck.add(check1); panelCheck.add(check2); panelCheck.add(check3); 
-  
-  var clickHandler = app.createServerHandler('validateLink');
-  validateButton.addClickHandler(clickHandler);
-  clickHandler.addCallbackElement(mainPanel);
+function displayLinkCreation() {
+  var app = UiApp.createApplication().setWidth(600).setHeight(450);  
+  var panelLeft = app.createVerticalPanel();
+  var panelRight = app.createVerticalPanel(); 
   var horPanel = app.createHorizontalPanel();
-  horPanel.add(panelRadio);
-  horPanel.add(panelCheck);
-  mainPanel.add(horPanel);
-  mainPanel.add(validateButton); 
-  app.add(mainPanel);
+  var scrollPanel = app.createScrollPanel().setPixelSize(595, 390);
+  var mainPanel = app.createVerticalPanel();    
+  var formPanel = app.createFormPanel(); 
+  
+  var allAnnotations = JSON.parse(PropertiesService.getDocumentProperties().getProperty('ANNOTATIONS'));
+  var types =  Object.keys(allAnnotations);
+  for (var i = 0; i < types.length; i++) {
+    annotations = allAnnotations[types[i]];
+    if(annotations.length != 0) {
+      var attributes = Object.keys(annotations[0]);
+      if(attributes.length > 0) {     
+        for (var j = 0; j < annotations.length; j++) {
+          var annotation = annotations[j];      
+          // the default value for the text to print will be the second attribute
+          panelLeft.add(  app.createRadioButton('radio_src',    annotation[attributes[1]]).setFormValue(annotation.id) );
+          panelRight.add( app.createRadioButton('radio_target', annotation[attributes[1]]).setFormValue(annotation.id) );
+        }
+      }
+    }
+  }
+  
+  var createButton = app.createSubmitButton('Create link');
+  
+  var doneButton = app.createButton('Done');
+  var clickHandler = app.createServerHandler('persistLinks');
+  clickHandler.addCallbackElement(mainPanel);
+  doneButton.addClickHandler(clickHandler);
+  
+  horPanel.add(panelLeft);
+  horPanel.add(panelRight);
+  
+  scrollPanel.add(horPanel);
+  
+  mainPanel.add(scrollPanel);
+  mainPanel.add(createButton); 
+  mainPanel.add(doneButton); 
+  
+  formPanel.add(mainPanel); 
+  
+  app.add(formPanel);
   
   DocumentApp.getUi().showModalDialog(app, 'Link creator');
 }
 
-/* Function for creating links between elements */
-function validateLink(e) {
-  /* TODO: continue this function */
-  DocumentApp.getUi().alert(e.parameter.nom1);
+/* Function for calling the creation of links between elements */
+function doPost(e) {
+  if(e.parameter.radio_src == e.parameter.radio_target) {
+    DocumentApp.getUi().alert('No link can be created between 2 identical annotations');
+  }
+  else {
+    createLink(e.parameter.radio_src, e.parameter.radio_target);
+  }
+}
+
+/* Create a link object from the id in the parameters and store it in the cache */
+function createLink(idSource, idTarget) {
+  var links = JSON.parse(CacheService.getPrivateCache().get("links"));
+  var link = {};
+  link["source"] = idSource;
+  link["target"] = idTarget;
+  links.push(link);
+  DocumentApp.getUi().alert('Link created (in the cache)');  
+  CacheService.getPrivateCache().put('links', JSON.stringify(links), 3600);  
+}
+
+/* Save the links into the Document Properties */
+function persistLinks(e) {
+  var linksInCache = JSON.parse(CacheService.getPrivateCache().get('links'));
+  var documentProperties = PropertiesService.getDocumentProperties();
+  var linksInDoc = documentProperties.getProperty('LINKS');
+  if(linksInDoc == null) {
+    documentProperties.setProperty('LINKS', JSON.stringify(linksInCache));
+  }
+  else {   
+    linksInDoc = JSON.parse(documentProperties.getProperty('LINKS'));
+    var newLinks = linksInDoc;
+    /* To avoid creating a new array in the JSON object */
+    for (var i = 0; i < linksInCache.length; i++) {
+      newLinks.push(linksInCache[i]);
+    }
+    documentProperties.setProperty('LINKS', JSON.stringify(newLinks));
+  }
+  DocumentApp.getUi().alert('Links saved');
+  clearLinksInCache();
 }
