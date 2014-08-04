@@ -53,6 +53,7 @@ function generateSpreadsheet() {
   var documentProperties = PropertiesService.getDocumentProperties();
   var annotations = JSON.parse(documentProperties.getProperty('ANNOTATIONS'));
   var annotations_type = JSON.parse(documentProperties.getProperty('ANNOTATIONS_TYPE'));  
+  var links = JSON.parse(documentProperties.getProperty('LINKS'));  
   var types =  Object.keys(annotations_type);
   
   /* First type */  
@@ -64,6 +65,24 @@ function generateSpreadsheet() {
       spreadsheet.getSheetByName(types[0]).getRange(j+2,1+i).setValue(annotations[types[0]][j][attributeName]);
     }
   }
+  /* Saving of the links in the last column */
+  var indexLastColumn = annotations_type[types[0]].attributes.length;
+  spreadsheet.getSheetByName(types[0]).getRange(1,indexLastColumn+1).setValue("links");
+  for (var j = 0; j < annotations[types[0]].length; j++) {    
+    var currentID = annotations[types[0]][j]["id"];
+    if(links[currentID] != undefined) {
+      var linksToString = "";
+      for (var k = 0; k < links[currentID].length; k++) {
+        if(linksToString == "") {
+          linksToString = links[currentID][k]["target"];
+        }
+        else {
+          linksToString = linksToString +"," + links[currentID][k]["target"];
+        }
+      }
+      spreadsheet.getSheetByName(types[0]).getRange(j+2,1+indexLastColumn).setValue(linksToString);
+    }
+  }  
   
   /* Other types */
   for (var i = 1; i < types.length; i++) {
@@ -75,18 +94,36 @@ function generateSpreadsheet() {
         spreadsheet.getSheetByName(types[i]).getRange(k+2,1+j).setValue(annotations[types[i]][k][attributeName]);
       }
     }
+    /* Saving of the links in the last column */
+    var indexLastColumn = annotations_type[types[i]].attributes.length;
+    spreadsheet.getSheetByName(types[i]).getRange(1,1+indexLastColumn).setValue("links");
+    for (var j = 0; j < annotations[types[i]].length; j++) {    
+      var currentID = annotations[types[i]][j]["id"];
+      if(links[currentID] != undefined) {
+        var linksToString = "";
+        for (var k = 0; k < links[currentID].length; k++) {
+          if(linksToString == "") {
+            linksToString = links[currentID][k]["target"];
+          }
+          else {
+            linksToString = linksToString +"," + links[currentID][k]["target"];
+          }
+        }
+        spreadsheet.getSheetByName(types[i]).getRange(j+2,1+indexLastColumn).setValue(linksToString);
+      }
+    }
   }
 }
 
 /* Adds a type to the selected text */
 function save(type, color) {   
   var selectedElements = getSelectedText();
-  addToCache(type, selectedElements.text, selectedElements.elements);
+  var annotation = addToCache(type, selectedElements.text, selectedElements.elements);
   updateView(selectedElements.elements, color);
-  insertComment(DocumentApp.getActiveDocument().getId(), selectedElements.text, type);
+  insertComment(DocumentApp.getActiveDocument().getId(), selectedElements.text, /*type*/annotation);
 }
 
-/* Adds the selected text to the cache */
+/* Adds the selected text to the cache - returns the new annotation as a String from the JSON object */
 function addToCache(type, text, selectedElements) {
   var annotations = JSON.parse(CacheService.getPrivateCache().get("annotations"));
   var annotations_type = JSON.parse(PropertiesService.getDocumentProperties().getProperty('ANNOTATIONS_TYPE'));
@@ -125,6 +162,7 @@ function addToCache(type, text, selectedElements) {
   }
   annotations[type].push(annotation);  
   CacheService.getPrivateCache().put('annotations', JSON.stringify(annotations), 3600);
+  return JSON.stringify(annotation);
 }
 
 /* Finds and returns the pattern within the selected elements */
@@ -167,7 +205,7 @@ function updateView(selectedElements, backgroundColor) {
 function initCache(xml_content) {
   var annotations = {}; 
   var annotations_type = {}; 
-  var links = []; 
+  var links = {}; 
   for (var i = 0; i < xml_content.length; i++) {
     annotations[xml_content[i].name] = [];
     annotations_type[xml_content[i].name] = {"color" : xml_content[i].color, "attributes" : new Object(xml_content[i].attributes)};
@@ -192,7 +230,7 @@ function clearAnnotationsInCache() {
 
 /* Clears the links stored into the cache */
 function clearLinksInCache() {
-  CacheService.getPrivateCache().put('links', JSON.stringify([]), 3600);
+  CacheService.getPrivateCache().put('links', JSON.stringify({}), 3600);
 }
 
 /* Clears the cache */
@@ -470,15 +508,18 @@ function doPost(e) {
   else {
     createLink(e.parameter.radio_src, e.parameter.radio_target);
   }
+  displayLinkCreation(); // first idea to solve the pb with doPost closing automatically the window
 }
 
 /* Create a link object from the id in the parameters and store it in the cache */
 function createLink(idSource, idTarget) {
   var links = JSON.parse(CacheService.getPrivateCache().get("links"));
-  var link = {};
-  link["source"] = idSource;
-  link["target"] = idTarget;
-  links.push(link);
+  if(links[idSource] == undefined) {
+    links[idSource] = []; 
+  }  
+  var target = {};
+  target["target"] = idTarget;
+  links[idSource].push(target);
   DocumentApp.getUi().alert('Link created (in the cache)');  
   CacheService.getPrivateCache().put('links', JSON.stringify(links), 3600);  
 }
@@ -494,12 +535,19 @@ function persistLinks(e) {
   else {   
     linksInDoc = JSON.parse(documentProperties.getProperty('LINKS'));
     var newLinks = linksInDoc;
-    /* To avoid creating a new array in the JSON object */
-    for (var i = 0; i < linksInCache.length; i++) {
-      newLinks.push(linksInCache[i]);
+    var idsToAdd = Object.keys(linksInCache);
+    for (var i = 0; i < idsToAdd.length; i++) {
+      if(newLinks[idsToAdd[i]] == undefined) {
+        newLinks[idsToAdd[i]] = [];
+      }
+      /* To avoid creating a new array in the JSON object */
+      var nbElem = linksInCache[idsToAdd[i]].length;
+      for (var j = 0; j < nbElem; j++) {
+        newLinks[idsToAdd[i]].push(linksInCache[idsToAdd[i]][j]);
+      }
     }
     documentProperties.setProperty('LINKS', JSON.stringify(newLinks));
   }
   DocumentApp.getUi().alert('Links saved');
-  clearLinksInCache();
+  clearLinksInCache(); 
 }
