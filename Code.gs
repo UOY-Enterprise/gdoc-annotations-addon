@@ -120,7 +120,7 @@ function save(type, color) {
   var selectedElements = getSelectedText();
   var annotation = addToCache(type, selectedElements.text, selectedElements.elements);
   updateView(selectedElements.elements, color);
-  insertComment(DocumentApp.getActiveDocument().getId(), selectedElements.text, /*type*/annotation);
+  insertComment(DocumentApp.getActiveDocument().getId(), selectedElements.text, annotation);
 }
 
 /* Adds the selected text to the cache - returns the new annotation as a String from the JSON object */
@@ -427,9 +427,10 @@ function updateButtons(xml_content) {
   }  
   
   newSidebar +='</table></div>';
-  newSidebar += '<table><tr><div class="links_buttons"> ';
-  newSidebar += '<button onclick="google.script.run.displayLinkCreation()" class="my_button" name="link_creator">Link creator</button>';
-  newSidebar += '</div></tr></table>';  
+  newSidebar += '<div class="links_buttons"><table>';
+  newSidebar += '<tr><button onclick="google.script.run.displayLinkCreation()" class="my_button" name="link_creator">Link creator</button></tr>';
+  newSidebar += '<tr><button onclick="google.script.run.showLinks()" class="my_button" name="link_creator">Show links</button></tr>';
+  newSidebar += '</table></div>';  
   
   newSidebar += ' <table> <div class="other_buttons"> <tr><button onclick="google.script.run.getAnnotationsInDoc()">What\'s in the doc</button>';
   newSidebar += '<button onclick="google.script.run.saveAnnotationsInDoc()" class="action">Save</button></tr>';
@@ -460,6 +461,8 @@ function displayLinkCreation() {
   var mainPanel = app.createVerticalPanel();    
   var formPanel = app.createFormPanel(); 
   
+  panelLeft.add(app.createLabel("Source"));
+  panelRight.add(app.createLabel("Target"));
   var allAnnotations = JSON.parse(PropertiesService.getDocumentProperties().getProperty('ANNOTATIONS'));
   var types =  Object.keys(allAnnotations);
   for (var i = 0; i < types.length; i++) {
@@ -550,4 +553,41 @@ function persistLinks(e) {
   }
   DocumentApp.getUi().alert('Links saved');
   clearLinksInCache(); 
+}
+
+function showLinks() {
+  var app = UiApp.createApplication();
+  var mainPanel = app.createVerticalPanel();  
+  var scrollPanel = app.createScrollPanel().setPixelSize(500, 300);
+  var links = PropertiesService.getDocumentProperties().getProperty('LINKS');
+  if(links != null) {
+    links = JSON.parse(PropertiesService.getDocumentProperties().getProperty('LINKS'));  
+    var ids = Object.keys(links);
+    var grid = app.createGrid().resize(ids.length+1,2);
+    grid.setBorderWidth(1);
+    grid.setText(0, 0, 'Source');
+    grid.setText(0, 1, 'Target(s)');
+    for (var i = 0; i < ids.length; i++) {
+      grid.setText(i+1, 0, ids[i]);
+      var linksString = "";
+      for (var j = 0; j < links[ids[i]].length; j++) {
+        var target = links[ids[i]][j]["target"]
+        if(linksString == "") {
+          linksString = target;
+        }
+        else {
+          linksString += ", " + target;
+        }
+      }
+      grid.setText(i+1, 1, linksString);
+    }
+    mainPanel.add(grid); 
+    scrollPanel.add(mainPanel);
+    app.add(scrollPanel);
+  }
+  else {
+    mainPanel.add(app.createLabel("No links in this document"));
+    app.add(mainPanel);
+  }
+  DocumentApp.getUi().showModalDialog(app, 'Links in the document');  
 }
