@@ -445,8 +445,7 @@ function updateButtons(xml_content) {
   newSidebar +='</table></div>';
   newSidebar += '<div class="links_buttons"><table>';
   newSidebar += '<tr><button onclick="google.script.run.displayLinkCreation()" class="my_button" name="link_creator">Link creator</button></tr>';
-  newSidebar += '<tr><button onclick="google.script.run.showLinks()" class="my_button" name="link_creator">Show links</button></tr>';
-  
+  newSidebar += '<tr><button onclick="google.script.run.showLinks()" class="my_button" name="link_creator">Show links</button></tr>';  
   newSidebar += '</table></div>';  
   
   newSidebar += ' <table> <div class="other_buttons"> <tr><button onclick="google.script.run.getAnnotationsInDoc()">What\'s in the doc</button>';
@@ -583,7 +582,7 @@ function showLinks() {
     var ids = Object.keys(links);
     var grid = app.createGrid().resize(ids.length+1,2);
     grid.setBorderWidth(1);
-    grid.setText(0, 0, 'Source');  //DocumentApp.getUi().alert('commentaires : ' + comments+ 'nb : ' + comments.length);
+    grid.setText(0, 0, 'Source');
     grid.setText(0, 1, 'Target(s)');
     for (var i = 0; i < ids.length; i++) {
       grid.setText(i+1, 0, ids[i]);
