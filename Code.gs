@@ -245,8 +245,12 @@ function saveAnnotationsInDoc() {
   var documentProperties = PropertiesService.getDocumentProperties();
   var annotationsInDoc = documentProperties.getProperty('ANNOTATIONS');
   var annotations_type = JSON.parse(documentProperties.getProperty('ANNOTATIONS_TYPE'));
+  var manualAnnotations = retrieveAnchoredComments();
+  
   if(annotationsInDoc == null) {
     documentProperties.setProperty('ANNOTATIONS', JSON.stringify(annotationsInCache));
+    clearAnnotationsInCache();
+    saveAnnotationsInDoc(); // for the manual annotations
   }
   else {
     annotationsInDoc = JSON.parse(documentProperties.getProperty('ANNOTATIONS'));
@@ -254,6 +258,7 @@ function saveAnnotationsInDoc() {
     var keys = Object.keys(annotationsInDoc);
     for(var k in keys) {
       var type = keys[k];
+      /* Save annotations from the cache into the newAnnotations object */
       if(annotationsInCache[type].length > 0) {
         for(var i = 0; i < annotationsInCache[type].length; i++) {
           var annotation = {};
@@ -263,11 +268,22 @@ function saveAnnotationsInDoc() {
           }
           newAnnotations[type].push(annotation);
         }
-      }                                    
+      }
+      /* Save manual annotations from the comments into the newAnnotations object */
+      if(manualAnnotations[type].length > 0) {
+        for(var i = 0; i < manualAnnotations[type].length; i++) {
+          var annotation = {};
+          for(j = 0; j< annotations_type[type].attributes.length; j++) {
+            var attrName = annotations_type[type].attributes[j].name;
+            annotation[attrName] = ""+manualAnnotations[type][i][attrName];  
+          }
+          newAnnotations[type].push(annotation);
+        }
+      }
     }
     documentProperties.setProperty('ANNOTATIONS', JSON.stringify(newAnnotations));
+    clearAnnotationsInCache();
   }
-  clearAnnotationsInCache();
 }
 
 /**
@@ -291,7 +307,7 @@ function getAnnotationsInDoc() {
   var documentProperties = PropertiesService.getDocumentProperties();
   DocumentApp.getUi().alert('Annotations in the Document Properties: ' + documentProperties.getProperty('ANNOTATIONS'));
   //DocumentApp.getUi().alert('Annotations_type in the Document Properties: ' + documentProperties.getProperty('ANNOTATIONS_TYPE'));  
-  DocumentApp.getUi().alert('Links in the Document Properties: ' + documentProperties.getProperty('LINKS'));  
+  //DocumentApp.getUi().alert('Links in the Document Properties: ' + documentProperties.getProperty('LINKS'));  
 }
 
 /* Remove the annotations stored in the document properties */
@@ -430,6 +446,7 @@ function updateButtons(xml_content) {
   newSidebar += '<div class="links_buttons"><table>';
   newSidebar += '<tr><button onclick="google.script.run.displayLinkCreation()" class="my_button" name="link_creator">Link creator</button></tr>';
   newSidebar += '<tr><button onclick="google.script.run.showLinks()" class="my_button" name="link_creator">Show links</button></tr>';
+  
   newSidebar += '</table></div>';  
   
   newSidebar += ' <table> <div class="other_buttons"> <tr><button onclick="google.script.run.getAnnotationsInDoc()">What\'s in the doc</button>';
@@ -555,6 +572,7 @@ function persistLinks(e) {
   clearLinksInCache(); 
 }
 
+/* Create and show a window containing the links */
 function showLinks() {
   var app = UiApp.createApplication();
   var mainPanel = app.createVerticalPanel();  
@@ -565,7 +583,7 @@ function showLinks() {
     var ids = Object.keys(links);
     var grid = app.createGrid().resize(ids.length+1,2);
     grid.setBorderWidth(1);
-    grid.setText(0, 0, 'Source');
+    grid.setText(0, 0, 'Source');  //DocumentApp.getUi().alert('commentaires : ' + comments+ 'nb : ' + comments.length);
     grid.setText(0, 1, 'Target(s)');
     for (var i = 0; i < ids.length; i++) {
       grid.setText(i+1, 0, ids[i]);
@@ -590,4 +608,38 @@ function showLinks() {
     app.add(mainPanel);
   }
   DocumentApp.getUi().showModalDialog(app, 'Links in the document');  
+}
+
+/* Finds the anchored opened comments and return them in a JSON object */
+function retrieveAnchoredComments() {
+  var fileId = DocumentApp.getActiveDocument().getId();
+  /* Default: 20 comments. Acceptable values are 0 to 100, inclusive. */ 
+  var comments = Drive.Comments.list(fileId).items;
+  
+  /* Initialisation of manualAnnotations */
+  var annotations_type = JSON.parse(PropertiesService.getDocumentProperties().getProperty('ANNOTATIONS_TYPE')); 
+  var types = Object.keys(annotations_type);
+  var manualAnnotations = {};
+  for (var i = 0; i < types.length; i++) {
+    manualAnnotations[types[i]] = [];
+  }
+  
+  /* Filling of manualAnnotations */
+  for (var i = 0; i < comments.length; i++) {
+    var commentId = comments[i].commentId;
+    if(comments[i].status == "open" && comments[i].anchor != undefined) {     
+      var comment = JSON.parse(comments[i].content);
+      var attributes = Object.keys(comment);
+      var type = comment["type"] ;
+      var annotation = {};
+      for (var j = 1; j < attributes.length; j++) {
+        annotation[attributes[j]] = comment[attributes[j]];
+      }
+      manualAnnotations[type].push(annotation);
+      /* The following line isn't working. Updating the content works, but not the status */
+      var content = {"status":"resolved"}; 
+      Drive.Comments.patch(content, fileId, commentId);
+    }
+  }
+  return manualAnnotations;
 }
