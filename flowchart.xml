@@ -1,0 +1,30 @@
+<panel>
+  <type>
+    <name>Start</name>
+    <color>#20B046</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+    <attribute manual="true">manualName</attribute>
+  </type>
+  <type>
+    <name>Action</name>
+    <color>#9BCEFA</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+    <attribute manual="true">manualName</attribute>
+  </type>
+  <type>
+    <name>Decision</name>
+    <color>#EB7C8B</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+    <attribute manual="true">manualName</attribute>
+  </type>
+  <type>
+    <name>End</name>
+    <color>#91B89D</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+    <attribute manual="true">manualName</attribute>
+  </type>
+</panel>

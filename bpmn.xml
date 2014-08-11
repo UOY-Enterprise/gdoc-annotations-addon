@@ -1,0 +1,34 @@
+<panel>
+  <type>
+    <name>Collaborator</name>
+    <color>#20B046</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+  </type>
+  <type>
+    <name>Activity</name>
+    <color>#9BCEFA</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+    <attribute manual="true">manualName</attribute>
+  </type>
+  <type>
+    <name>Gateway</name>
+    <color>#EB7C8B</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+    <attribute manual="true">manualName</attribute>
+  </type>
+  <type>
+    <name>Event</name>
+    <color>#91B89D</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+  </type>
+  <type>
+    <name>TimedEvent</name>
+    <color>#B18ADA</color>
+    <attribute>id</attribute>
+    <attribute>name</attribute>
+  </type>
+</panel>
